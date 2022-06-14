@@ -11,12 +11,12 @@
 #define SIZE 30
 int flag = 1;
 
-int removeFile(char *filename) {
+void removeFile(char *filename) {
     int stat;
     pid_t pid;
     if ((pid = fork()) < 0) {
         perror("fork failed\n");
-        return -1;
+        exit(-1);
     } else {
         if (pid == 0) {
             char *args[] = {"rm", filename, NULL};
@@ -26,7 +26,6 @@ int removeFile(char *filename) {
             wait(&stat);
         }
     }
-    return 0;
 }
 
 
@@ -60,7 +59,7 @@ void calc() {
     fclose(file);
     removeFile("to_srv.txt");
 
-    if (input[3] < 1 || input[3] > 4 || input[0] < 0) {
+    if (input[2] < 1 || input[2] > 4 || input[0] < 0) {
         printf("ERROR_FROM_EX4\n");
         exit(-1);
     }
@@ -121,17 +120,13 @@ void stopRunning(int sig) {
     signal(SIGALRM, stopRunning);
     flag = 0;
     int stat;
-    while (wait(&stat) != -1);
+    while (wait(NULL) != -1);
 }
 
 int main() {
     int errors = open("to_srv.txt", O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWGRP | S_IWUSR);
     if (errors >= 0) {
-        errors = removeFile("to_srv.txt");
-        if (errors == -1) {
-            printf("ERROR_FROM_EX4\n");
-            return -1;
-        }
+      removeFile("to_srv.txt");
     }
     signal(SIGUSR1, sigHandler);
     signal(SIGALRM, stopRunning);

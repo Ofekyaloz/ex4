@@ -15,6 +15,7 @@ int flag = 1;
 void sigHandler(int sig) {
     signal(SIGUSR1, sigHandler);
     alarm(0);
+    flag =0;
     char filename[SIZE] = "to_client_", *line = NULL;
     size_t len;
     pid_t pid = getpid();
@@ -25,7 +26,7 @@ void sigHandler(int sig) {
     int stat, err = open(filename, O_RDONLY);
     if (err == -1) {
         printf("ERROR_FROM_EX4\n");
-        return;
+        exit(-1);
     }
     FILE *file = fopen(filename, "r");
     if (getline(&line, &len, file) != -1) {
@@ -33,7 +34,7 @@ void sigHandler(int sig) {
     }
     if ((pid = fork()) < 0) {
         printf("ERROR_FROM_EX4\n");
-        return;
+        exit(-1);
     } else {
         if (pid == 0) {
             char *args[] = {"rm", filename, NULL};
@@ -44,7 +45,6 @@ void sigHandler(int sig) {
             wait(&stat);
         }
     }
-    flag =0;
 }
 
 void stopRunning(int sig) {
@@ -122,6 +122,5 @@ int main(int argc, char *argv[]) {
     while (flag) {
         pause();
     }
-
     return 0;
 }
