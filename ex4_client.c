@@ -1,25 +1,28 @@
 // Ofek Yaloz 206666729
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <sys/random.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <ctype.h>
 
-#define SIZE 100
+#define SIZE 30
 
 void sigHandler(int sig) {
+    printf("in sig\n");
     signal(SIGUSR1, sigHandler);
-    char filename[SIZE] = "to_client_", *text = NULL, *line;
+    alarm(0);
+    char filename[SIZE] = "to_client_", *line = NULL;
     size_t len;
     pid_t pid = getpid();
     char *strPid = malloc(sizeof(pid_t) + 1);
     sprintf(strPid, "%d", pid);
-    strcat(strcat(filename, strPid),".txt");
+    strcat(strcat(filename, strPid), ".txt");
     free(strPid);
-    int stat,err = open(filename, O_RDONLY);
+    int stat, err = open(filename, O_RDONLY);
     if (err == -1) {
         printf("ERROR_FROM_EX4\n");
         return;
@@ -44,6 +47,12 @@ void sigHandler(int sig) {
 
 }
 
+void stopRunning(int sig) {
+    signal(SIGALRM, stopRunning);
+    printf("Client closed because no response was received from the server for 30 seconds\n");
+    exit(-1);
+}
+
 
 int main(int argc, char *argv[]) {
     if (argc < 5) {
@@ -51,19 +60,15 @@ int main(int argc, char *argv[]) {
         return -1;
     }
     unsigned int charWrite, len;
-    int i, errors, counter = 0;
+    int i, errors, counter = 0, server;
     while ((errors = open("to_srv.txt", O_WRONLY | O_TRUNC | O_CREAT | O_EXCL, S_IRUSR | S_IWGRP | S_IWUSR)) < 0) {
         ++counter;
         if (counter == 10) {
             printf("ERROR_FROM_EX4\n");
             return -1;
         }
-        unsigned int tmp;
-        if (getrandom(&tmp, sizeof(unsigned int), GRND_NONBLOCK) == -1) {
-            printf("ERROR_FROM_EX4\n");
-            return -1;
-        }
-        sleep(tmp % 6);
+        unsigned int tmp = rand() % 6;
+        sleep(tmp);
     }
     if (errors < 0) {
         printf("ERROR_FROM_EX4\n");
@@ -86,8 +91,19 @@ int main(int argc, char *argv[]) {
     if (charWrite < sizeof(char)) {
         return -1;
     }
-    for (i = 2; i < 5; ++i) {
+    for (i = 1; i < 5; ++i) {
         char *tmp = argv[i];
+        if (i == 1) {
+            int j = 0;
+            while (tmp[j] != '\0') {
+                if (isdigit(tmp[j] < 0)) {
+                    printf("ERROR_FROM_EX4\n");
+                    exit(-1);
+                }
+                j++;
+            }
+            server = atoi(tmp);
+        }
         charWrite = fwrite(tmp, 1, strlen(argv[i]), fp);
         if (charWrite < sizeof(*argv[i])) {
             return -1;
@@ -98,11 +114,13 @@ int main(int argc, char *argv[]) {
         }
     }
     fclose(fp);
-
-    kill(*argv[1], SIGUSR1);
     signal(SIGUSR1, sigHandler);
+    signal(SIGALRM, stopRunning);
+    kill(server, SIGUSR1);
+    alarm(30);
+    while (1) {
+        pause();
+    }
 
-
-//    printf("Client closed because no response was received from the server for 30 seconds\n");
     return 0;
 }
