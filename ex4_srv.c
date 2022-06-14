@@ -6,7 +6,6 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <ctype.h>
 
 #define SIZE 30
@@ -31,9 +30,9 @@ int removeFile(char *filename) {
 }
 
 
-void *calc(void *arg) {
+void calc() {
     size_t len;
-    int input[4], j, i = 0, err = open("to_srv.txt", O_RDONLY);
+    int input[4], charsWrite, j, i = 0, err = open("to_srv.txt", O_RDONLY);
     if (err == -1) {
         printf("ERROR_FROM_EX4\n");
         exit(-1);
@@ -41,24 +40,25 @@ void *calc(void *arg) {
     FILE *file = fopen("to_srv.txt", "r");
     char filename[SIZE] = "to_client_", *text = NULL, *line = NULL;
     while (getline(&line, &len, file) != -1 && i < 4) {
-        if (i == 0) {
-            strcat(strcat(filename, line), ".txt");
-        }
         j = 0;
-        while (line[j] != '\n' || line[j] != '\0') {
+        while (line[j] != '\n') {
             if (isdigit(line[j] < 0)) {
-                removeFile(filename);
+                removeFile("to_srv.txt");
                 printf("ERROR_FROM_EX4\n");
                 exit(-1);
             }
             j++;
+        }
+        if (i == 0) {
+            line[j] = '\0';
+            strcat(strcat(filename, line), ".txt");
         }
 
         input[i] = atoi(line);
         ++i;
     }
     fclose(file);
-    removeFile(filename);
+    removeFile("to_srv.txt");
 
     if (input[3] < 1 || input[3] > 4 || input[0] < 0) {
         printf("ERROR_FROM_EX4\n");
@@ -71,12 +71,12 @@ void *calc(void *arg) {
     }
     FILE *fp = fopen(filename, "w");
     text = malloc(sizeof(int));
-    if (input[3] == 1) {
-        sprintf(text, "%d", (input[2] + input[3]));
-    } else if (input[3] == 2) {
-        sprintf(text, "%d", (input[2] - input[3]));
-    } else if (input[3] == 3) {
-        sprintf(text, "%d", (input[2] * input[3]));
+    if (input[2] == 1) {
+        sprintf(text, "%d", (input[1] + input[3]));
+    } else if (input[2] == 2) {
+        sprintf(text, "%d", (input[1] - input[3]));
+    } else if (input[2] == 3) {
+        sprintf(text, "%d", (input[1] * input[3]));
     } else {
         if (input[3] == 0) {
             char errmsg[SIZE] = "CANNOT_DIVIDE_BY_ZERO\n";
@@ -86,29 +86,42 @@ void *calc(void *arg) {
             kill(input[0], SIGUSR1);
             exit(-1);
         }
-        sprintf(text, "%d", (input[2] / input[3]));
+        sprintf(text, "%d", (input[1] / input[3]));
     }
-    fwrite(text, 1, strlen(text), fp);
+    len = strlen(text);
+    charsWrite = write(resultfile, text, len);
     free(text);
+    if (charsWrite < 0) {
+        printf("ERROR_FROM_EX4\n");
+        exit(-1);
+    }
+    charsWrite = fwrite("\n", 1, 1, fp);
+    if (charsWrite < sizeof(char)) {
+        printf("ERROR_FROM_EX4\n");
+        exit(-1);
+    }
     kill(input[0], SIGUSR1);
-    return NULL;
 }
 
 void sigHandler(int sig) {
-    printf("in sig\n");
     signal(SIGUSR1, sigHandler);
     alarm(60);
-    calc(0);
-    pthread_t pthread;
-    int err = pthread_create(&pthread, NULL, calc, NULL);
-    if (err != 0) {
+    pid_t pid;
+    if ((pid = fork()) < 0) {
         printf("ERROR_FROM_EX4\n");
+        exit(-1);
+    } else {
+        if (pid == 0) {
+            calc();
+        }
     }
 }
 
 void stopRunning(int sig) {
     signal(SIGALRM, stopRunning);
     flag = 0;
+    int stat;
+    while (wait(&stat) != -1);
 }
 
 int main() {
@@ -122,7 +135,6 @@ int main() {
     }
     signal(SIGUSR1, sigHandler);
     signal(SIGALRM, stopRunning);
-
     alarm(60);
     while (flag) {
         pause();

@@ -10,9 +10,9 @@
 #include <ctype.h>
 
 #define SIZE 30
+int flag = 1;
 
 void sigHandler(int sig) {
-    printf("in sig\n");
     signal(SIGUSR1, sigHandler);
     alarm(0);
     char filename[SIZE] = "to_client_", *line = NULL;
@@ -44,7 +44,7 @@ void sigHandler(int sig) {
             wait(&stat);
         }
     }
-
+    flag =0;
 }
 
 void stopRunning(int sig) {
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
         printf("ERROR_FROM_EX4\n");
         return -1;
     }
-    unsigned int charWrite, len;
+    unsigned int charsWrite, len;
     int i, errors, counter = 0, server;
     while ((errors = open("to_srv.txt", O_WRONLY | O_TRUNC | O_CREAT | O_EXCL, S_IRUSR | S_IWGRP | S_IWUSR)) < 0) {
         ++counter;
@@ -81,14 +81,14 @@ int main(int argc, char *argv[]) {
     char *strPid = malloc(sizeof(pid_t) + 1);
     sprintf(strPid, "%d", pid);
     len = strlen(strPid);
-    charWrite = fwrite(strPid, 1, len, fp);
+    charsWrite = fwrite(strPid, 1, len, fp);
     free(strPid);
-    if (charWrite < len) {
+    if (charsWrite < len) {
         return -1;
     }
 
-    charWrite = fwrite("\n", 1, 1, fp);
-    if (charWrite < sizeof(char)) {
+    charsWrite = fwrite("\n", 1, 1, fp);
+    if (charsWrite < sizeof(char)) {
         return -1;
     }
     for (i = 1; i < 5; ++i) {
@@ -103,13 +103,14 @@ int main(int argc, char *argv[]) {
                 j++;
             }
             server = atoi(tmp);
+            continue;
         }
-        charWrite = fwrite(tmp, 1, strlen(argv[i]), fp);
-        if (charWrite < sizeof(*argv[i])) {
+        charsWrite = fwrite(tmp, 1, strlen(argv[i]), fp);
+        if (charsWrite < sizeof(*argv[i])) {
             return -1;
         }
-        charWrite = fwrite("\n", 1, 1, fp);
-        if (charWrite < sizeof(char)) {
+        charsWrite = fwrite("\n", 1, 1, fp);
+        if (charsWrite < sizeof(char)) {
             return -1;
         }
     }
@@ -118,7 +119,7 @@ int main(int argc, char *argv[]) {
     signal(SIGALRM, stopRunning);
     kill(server, SIGUSR1);
     alarm(30);
-    while (1) {
+    while (flag) {
         pause();
     }
 
