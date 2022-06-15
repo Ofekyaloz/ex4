@@ -86,16 +86,12 @@ void calc() {
             exit(-1);
         }
         sprintf(text, "%d", (input[1] / input[3]));
+        strcat(text, "\n");
     }
     len = strlen(text);
     charsWrite = write(resultfile, text, len);
     free(text);
     if (charsWrite < 0) {
-        printf("ERROR_FROM_EX4\n");
-        exit(-1);
-    }
-    charsWrite = fwrite("\n", 1, 1, fp);
-    if (charsWrite < sizeof(char)) {
         printf("ERROR_FROM_EX4\n");
         exit(-1);
     }

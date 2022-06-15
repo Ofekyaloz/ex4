@@ -30,7 +30,7 @@ void sigHandler(int sig) {
     }
     FILE *file = fopen(filename, "r");
     if (getline(&line, &len, file) != -1) {
-        printf("%s\n", line);
+        printf("%s", line);
     }
     if ((pid = fork()) < 0) {
         printf("ERROR_FROM_EX4\n");
