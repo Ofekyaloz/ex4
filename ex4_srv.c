@@ -86,7 +86,6 @@ void calc() {
             exit(-1);
         }
         sprintf(text, "%d", (input[1] / input[3]));
-        strcat(text, "\n");
     }
     len = strlen(text);
     charsWrite = write(resultfile, text, len);
@@ -96,6 +95,7 @@ void calc() {
         exit(-1);
     }
     kill(input[0], SIGUSR1);
+    exit(0);
 }
 
 void sigHandler(int sig) {
@@ -122,7 +122,7 @@ void stopRunning(int sig) {
 int main() {
     int errors = open("to_srv.txt", O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IWGRP | S_IWUSR);
     if (errors >= 0) {
-      removeFile("to_srv.txt");
+        removeFile("to_srv.txt");
     }
     signal(SIGUSR1, sigHandler);
     signal(SIGALRM, stopRunning);

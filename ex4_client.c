@@ -15,7 +15,7 @@ int flag = 1;
 void sigHandler(int sig) {
     signal(SIGUSR1, sigHandler);
     alarm(0);
-    flag =0;
+    flag = 0;
     char filename[SIZE] = "to_client_", *line = NULL;
     size_t len;
     pid_t pid = getpid();
